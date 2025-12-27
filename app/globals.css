@@ -123,3 +123,38 @@
     @apply bg-background text-foreground;
   }
 }
+
+@media print {
+  /* 1. Sembunyikan SEMUA elemen body secara default */
+  body * {
+    visibility: hidden;
+  }
+
+  /* 2. Tampilkan hanya container invoice */
+  #invoice-area,
+  #invoice-area * {
+    visibility: visible;
+  }
+
+  /* 3. Posisikan invoice di pojok kiri atas kertas & atur lebar */
+  #invoice-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: white; /* Pastikan background putih bersih */
+  }
+
+  /* 4. Sembunyikan elemen spesifik yang mungkin mengganggu (opsional) */
+  .no-print {
+    display: none !important;
+  }
+
+  /* 5. Hilangkan header/footer bawaan browser (tanggal/url) jika browser support */
+  @page {
+    margin: 20mm;
+    size: auto;
+  }
+}

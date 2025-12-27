@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useHouseCalculator } from "@/hooks/useHouseCalculator";
@@ -9,11 +9,17 @@ import { toast } from "sonner";
 import {
   Loader2,
   ArrowLeft,
+  ArrowRight,
   CheckCircle,
   Calculator,
   ChevronRight,
+  ChevronLeft,
   Info,
-  HelpCircle,
+  CreditCard,
+  User,
+  FileCheck,
+  Home,
+  ShieldCheck,
   Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -24,14 +30,6 @@ import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
@@ -47,20 +45,26 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ModeToggle } from "@/components/mode-toggle";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
 
-// --- KONFIGURASI GAMBAR & INFO ---
-// 1. Gambar Material (Fallback cerdas berdasarkan kata kunci)
+// --- KONFIGURASI GAMBAR & INFO (Sama seperti sebelumnya) ---
 const MATERIAL_IMAGES: Record<string, string> = {
   // Struktur & Dasar
   ukuran:
-    "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&q=80&w=400&h=300", // House Plan
+    "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&q=80&w=400&h=300",
   pondasi:
-    "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&q=80&w=400&h=300", // Foundation
+    "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&q=80&w=400&h=300",
   "batu kali":
     "https://images.unsplash.com/photo-1518709766631-a6a7f45921c3?auto=format&fit=crop&q=80&w=400&h=300",
   "cakar ayam":
-    "https://images.unsplash.com/photo-1628744876497-eb30460be9f6?auto=format&fit=crop&q=80&w=400&h=300", // Reinforced concrete
-
+    "https://images.unsplash.com/photo-1628744876497-eb30460be9f6?auto=format&fit=crop&q=80&w=400&h=300",
   // Dinding
   "bata merah":
     "https://images.unsplash.com/photo-1599818826721-b01625902047?auto=format&fit=crop&q=80&w=400&h=300",
@@ -68,7 +72,6 @@ const MATERIAL_IMAGES: Record<string, string> = {
     "https://images.unsplash.com/photo-1590082725838-b715764cb237?auto=format&fit=crop&q=80&w=400&h=300",
   batako:
     "https://images.unsplash.com/photo-1518399778368-23b9d79905d8?auto=format&fit=crop&q=80&w=400&h=300",
-
   // Lantai
   granit:
     "https://images.unsplash.com/photo-1616423664033-68d716298642?auto=format&fit=crop&q=80&w=400&h=300",
@@ -78,7 +81,6 @@ const MATERIAL_IMAGES: Record<string, string> = {
     "https://images.unsplash.com/photo-1618221639257-2e2d0943f760?auto=format&fit=crop&q=80&w=400&h=300",
   "batu alam":
     "https://images.unsplash.com/photo-1600607686527-6fb886090705?auto=format&fit=crop&q=80&w=400&h=300",
-
   // Atap & Plafon
   genteng:
     "https://images.unsplash.com/photo-1632759972844-4e924d557022?auto=format&fit=crop&q=80&w=400&h=300",
@@ -87,51 +89,38 @@ const MATERIAL_IMAGES: Record<string, string> = {
   metal:
     "https://images.unsplash.com/photo-1517646287270-a5a9ca602e5c?auto=format&fit=crop&q=80&w=400&h=300",
   plafon:
-    "https://images.unsplash.com/photo-1594904297322-2621096c4d79?auto=format&fit=crop&q=80&w=400&h=300", // Ceiling
+    "https://images.unsplash.com/photo-1594904297322-2621096c4d79?auto=format&fit=crop&q=80&w=400&h=300",
   gypsum:
     "https://images.unsplash.com/photo-1581093583449-ed2521361957?auto=format&fit=crop&q=80&w=400&h=300",
   pvc: "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&q=80&w=400&h=300",
-
   // Lainnya
   pintu:
     "https://images.unsplash.com/photo-1617104424032-b9bd6972d0e4?auto=format&fit=crop&q=80&w=400&h=300",
   jendela:
     "https://images.unsplash.com/photo-1506300481232-a16df162947c?auto=format&fit=crop&q=80&w=400&h=300",
   listrik:
-    "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&q=80&w=400&h=300", // Electrical
+    "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&q=80&w=400&h=300",
   watt: "https://images.unsplash.com/photo-1555662704-36a531e285d8?auto=format&fit=crop&q=80&w=400&h=300",
   pagar:
-    "https://images.unsplash.com/photo-1623192067750-70f44e339189?auto=format&fit=crop&q=80&w=400&h=300", // Fence
+    "https://images.unsplash.com/photo-1623192067750-70f44e339189?auto=format&fit=crop&q=80&w=400&h=300",
   hollow:
     "https://images.unsplash.com/photo-1605117882932-f9e32b03ef3c?auto=format&fit=crop&q=80&w=400&h=300",
-
-  // Default Fallback
   default:
-    "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=400&h=300", // Construction
+    "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=400&h=300",
 };
 
-// 2. Tooltip Info (Penjelasan Teknis)
 const CATEGORY_INFO: Record<string, string> = {
   "ukuran rumah":
     "Luas bangunan dasar (Tipe). Tipe 30/60 berarti luas bangunan 30m² dan luas tanah 60m².",
-  pondasi:
-    "Struktur bagian bawah bangunan yang menahan beban. Cakar ayam disarankan untuk rencana 2 lantai.",
-  dinding:
-    "Material penyekat ruangan. Bata merah paling kokoh & sejuk, Hebel paling cepat pengerjaannya.",
-  lantai:
-    "Penutup permukaan bawah. Granit lebih tahan gores & mewah dibanding keramik biasa.",
-  "kaso & reng":
-    "Rangka atap. Baja ringan lebih awet dan anti rayap dibanding kayu.",
-  genteng:
-    "Penutup atap. Metal roof lebih ringan, Genteng keramik lebih meredam panas.",
-  plafon:
-    "Langit-langit ruangan. PVC tahan air & rayap, Gypsum memberikan finish yang rapi.",
-  "pintu & jendela":
-    "Material kusen dan daun pintu. Aluminium awet & modern, Jati memberikan kesan klasik mewah.",
-  "daya listrik":
-    "Kapasitas daya PLN. 1300 Watt standar rumah tangga modern dengan AC.",
-  pagar:
-    "Pengaman area depan rumah. Hollow Galvanis lebih tahan karat dibanding besi hitam biasa.",
+  pondasi: "Struktur bagian bawah bangunan yang menahan beban.",
+  dinding: "Material penyekat ruangan.",
+  lantai: "Penutup permukaan bawah.",
+  "kaso & reng": "Rangka atap baja ringan atau kayu.",
+  genteng: "Penutup atap.",
+  plafon: "Langit-langit ruangan.",
+  "pintu & jendela": "Material kusen dan daun pintu.",
+  "daya listrik": "Kapasitas daya PLN.",
+  pagar: "Pengaman area depan rumah.",
 };
 
 const getMaterialImage = (name: string, categoryName: string) => {
@@ -140,26 +129,25 @@ const getMaterialImage = (name: string, categoryName: string) => {
   return key ? MATERIAL_IMAGES[key] : MATERIAL_IMAGES["default"];
 };
 
-const getCategoryTooltip = (categoryName: string) => {
-  const key = Object.keys(CATEGORY_INFO).find((k) =>
-    categoryName.toLowerCase().includes(k)
-  );
-  return key ? CATEGORY_INFO[key] : "Pilih spesifikasi sesuai kebutuhan Anda.";
-};
+// --- TYPES & STEPS ---
+type Step = "SPECS" | "PAYMENT" | "DATA" | "CONFIRM" | "SUCCESS";
+const STEPS_ORDER: Step[] = ["SPECS", "PAYMENT", "DATA", "CONFIRM", "SUCCESS"];
 
 export default function HouseCustomizer() {
   const { categories, selectedSpecs, totalPrice, loading, handleSelect } =
     useHouseCalculator();
   const supabase = createClient();
 
-  // State Flow
-  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [step, setStep] = useState(1);
+  // State Navigation
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [direction, setDirection] = useState<"next" | "prev">("next"); // Untuk arah animasi
 
   // State Pembayaran
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "CREDIT">("CASH");
   const [dpRaw, setDpRaw] = useState<string>("");
   const [tenor, setTenor] = useState<string>("12");
+
+  // State Data Diri
   const [customerData, setCustomerData] = useState({
     name: "",
     contact: "",
@@ -168,20 +156,10 @@ export default function HouseCustomizer() {
   const [submitting, setSubmitting] = useState(false);
   const [orderId, setOrderId] = useState<string>("");
 
-  const toIDR = (val: number) =>
-    new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      maximumFractionDigits: 0,
-    }).format(val);
+  const currentStep = STEPS_ORDER[currentStepIndex];
 
-  const handleDpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawVal = e.target.value.replace(/\D/g, "");
-    setDpRaw(rawVal);
-  };
-
+  // Logic Hitung Kredit
   const dpAmount = Number(dpRaw) || 0;
-
   const calculateCredit = useMemo(() => {
     const pokokHutang = Math.max(0, totalPrice - dpAmount);
     const bungaPerTahun = 0.12;
@@ -192,18 +170,45 @@ export default function HouseCustomizer() {
     return { pokokHutang, angsuranPerBulan, totalBunga, totalKewajiban };
   }, [totalPrice, dpAmount, tenor]);
 
+  const toIDR = (val: number) =>
+    new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      maximumFractionDigits: 0,
+    }).format(val);
+
+  // Navigation Handlers
+  const nextStep = () => {
+    if (currentStepIndex < STEPS_ORDER.length - 1) {
+      setDirection("next");
+      setCurrentStepIndex((prev) => prev + 1);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const prevStep = () => {
+    if (currentStepIndex > 0) {
+      setDirection("prev");
+      setCurrentStepIndex((prev) => prev - 1);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  // Validasi Step
+  const canProceed = () => {
+    if (currentStep === "PAYMENT") {
+      if (paymentMethod === "CREDIT" && dpAmount >= totalPrice) return false;
+    }
+    if (currentStep === "DATA") {
+      if (!customerData.name || !customerData.contact || !customerData.address)
+        return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async () => {
-    if (!customerData.name || !customerData.contact) {
-      toast.error("Mohon lengkapi Nama dan Kontak Anda.");
-      return;
-    }
-    if (paymentMethod === "CREDIT" && dpAmount >= totalPrice) {
-      toast.warning("DP tidak boleh melebihi harga rumah.");
-      return;
-    }
-
     setSubmitting(true);
-
+    // Submit ke database
     const payload = {
       customer_name: customerData.name,
       customer_contact: customerData.contact,
@@ -228,362 +233,267 @@ export default function HouseCustomizer() {
       setSubmitting(false);
     } else {
       setOrderId(data.id);
-      setStep(4);
+      nextStep(); // Ke halaman SUCCESS
       setSubmitting(false);
     }
   };
 
-  if (loading)
+  if (loading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-2">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Sedang memuat data...</p>
-        </div>
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
+  }
 
   return (
-    <div className="min-h-screen bg-background pb-40">
-      {/* Header */}
-      <header className="bg-background/80 backdrop-blur border-b sticky top-0 z-20 shadow-sm">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center max-w-5xl">
-          <Link
-            href="/"
-            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="hidden sm:inline">Kembali</span>
-          </Link>
-          <div className="flex items-center gap-2">
-            <h1 className="font-bold text-lg hidden md:block">
-              Studio Custom Rumah
-            </h1>
-            <Badge variant="outline" className="text-xs font-normal">
-              Step 1: Spesifikasi
-            </Badge>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <p className="text-[10px] uppercase text-muted-foreground font-semibold tracking-wider">
-                Estimasi
-              </p>
-              <p className="font-bold text-lg text-primary leading-none">
-                {toIDR(totalPrice)}
-              </p>
+    <div className="min-h-screen bg-background pb-20">
+      {/* Header Sticky */}
+      <header className="bg-background/80 backdrop-blur border-b sticky top-0 z-30">
+        <div className="container mx-auto px-4 py-4 max-w-5xl">
+          <div className="flex justify-between items-center mb-4">
+            <Link
+              href="/"
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span className="hidden sm:inline">Beranda</span>
+            </Link>
+            <div className="font-bold text-lg text-primary">
+              Trias Customizer
             </div>
             <ModeToggle />
+          </div>
+
+          {/* Progress Bar Steps */}
+          <div className="flex items-center justify-between relative px-2">
+            <div className="absolute left-0 right-0 top-1/2 h-0.5 bg-muted -z-10" />
+            {["Spesifikasi", "Metode Bayar", "Data Diri", "Konfirmasi"].map(
+              (label, idx) => {
+                const isActive = currentStepIndex >= idx;
+                const isCurrent = currentStepIndex === idx;
+                return (
+                  <div
+                    key={idx}
+                    className="flex flex-col items-center gap-2 bg-background px-2"
+                  >
+                    <div
+                      className={cn(
+                        "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 border-2",
+                        isActive
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-muted text-muted-foreground border-muted",
+                        isCurrent && "ring-4 ring-primary/20"
+                      )}
+                    >
+                      {isActive ? <CheckCircle className="w-4 h-4" /> : idx + 1}
+                    </div>
+                    <span
+                      className={cn(
+                        "text-[10px] uppercase font-semibold tracking-wider hidden sm:block",
+                        isCurrent ? "text-primary" : "text-muted-foreground"
+                      )}
+                    >
+                      {label}
+                    </span>
+                  </div>
+                );
+              }
+            )}
           </div>
         </div>
       </header>
 
-      {/* Main Form Area */}
-      <main className="container mx-auto px-4 py-8 max-w-5xl space-y-12">
-        {categories.map((category) => (
-          <div
-            key={category.id}
-            className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500"
-          >
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold tracking-tight">
-                {category.name}
-              </h2>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 rounded-full"
-                    >
-                      <Info className="h-4 w-4 text-muted-foreground hover:text-primary transition-colors" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs bg-slate-900 text-white border-none shadow-xl">
-                    <p className="text-sm leading-relaxed">
-                      {getCategoryTooltip(category.name)}
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
+      {/* Main Content dengan Animasi Slide */}
+      <main className="container mx-auto px-4 py-8 max-w-4xl min-h-[60vh] overflow-x-hidden relative">
+        <div
+          key={currentStep}
+          className={cn(
+            "animate-in duration-500 fill-mode-forwards",
+            direction === "next"
+              ? "slide-in-from-right-10 fade-in-0"
+              : "slide-in-from-left-10 fade-in-0"
+          )}
+        >
+          {/* STEP 1: SPESIFIKASI */}
+          {currentStep === "SPECS" && (
+            <div className="space-y-8">
+              <div className="text-center space-y-2">
+                <h2 className="text-3xl font-bold">Pilih Spesifikasi Rumah</h2>
+                <p className="text-muted-foreground">
+                  Sesuaikan setiap bagian rumah dengan keinginan dan budget
+                  Anda.
+                </p>
+              </div>
 
-            {/* TAMPILAN GRID GAMBAR (UNTUK SEMUA KATEGORI) */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {category.materials.map((mat) => {
-                const isSelected = selectedSpecs[category.id]?.id === mat.id;
-                return (
-                  <div
-                    key={mat.id}
-                    onClick={() => handleSelect(category.id, mat.id.toString())}
-                    className={cn(
-                      "cursor-pointer group relative flex flex-col overflow-hidden rounded-xl border-2 transition-all duration-200 hover:shadow-lg hover:-translate-y-1",
-                      isSelected
-                        ? "border-primary ring-2 ring-primary/20 bg-primary/5"
-                        : "border-muted/50 bg-card hover:border-primary/50"
-                    )}
-                  >
-                    {/* Image Container */}
-                    <div className="aspect-4/3 w-full overflow-hidden bg-muted relative">
-                      <Image
-                        src={getMaterialImage(mat.name, category.name)}
-                        alt={mat.name}
-                        fill
-                        className={cn(
-                          "object-cover transition-transform duration-500 group-hover:scale-110",
-                          isSelected ? "scale-105" : ""
-                        )}
-                      />
-                      {/* Overlay Gradient for Text readability if needed */}
-                      <div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-
-                      {isSelected && (
-                        <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-1 shadow-md animate-in zoom-in spin-in-90 duration-300">
-                          <CheckCircle className="w-4 h-4" />
-                        </div>
-                      )}
+              {categories.map((category) => (
+                <Card
+                  key={category.id}
+                  className="border-muted/60 shadow-sm overflow-hidden"
+                >
+                  <CardHeader className="bg-muted/30 pb-4">
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-lg">{category.name}</CardTitle>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Info className="h-4 w-4 text-muted-foreground" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>
+                              {CATEGORY_INFO[category.name.toLowerCase()] ||
+                                "Pilih opsi terbaik."}
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
-
-                    {/* Content */}
-                    <div className="p-4 flex-1 flex flex-col justify-between">
-                      <div>
-                        <p className="font-semibold text-sm md:text-base leading-tight">
-                          {mat.name}
-                        </p>
-                      </div>
-                      <div className="mt-3 pt-3 border-t border-dashed border-muted-foreground/20 flex justify-between items-center">
-                        <Badge
-                          variant={mat.price > 0 ? "secondary" : "outline"}
-                          className="text-[10px] font-normal px-1.5 h-5"
+                  </CardHeader>
+                  <CardContent className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    {category.materials.map((mat) => {
+                      const isSelected =
+                        selectedSpecs[category.id]?.id === mat.id;
+                      return (
+                        <div
+                          key={mat.id}
+                          onClick={() =>
+                            handleSelect(category.id, mat.id.toString())
+                          }
+                          className={cn(
+                            "group cursor-pointer rounded-xl border-2 transition-all duration-200 overflow-hidden relative",
+                            isSelected
+                              ? "border-primary ring-2 ring-primary/20 bg-primary/5"
+                              : "border-muted hover:border-primary/50"
+                          )}
                         >
-                          {mat.price > 0 ? "Upgrade" : "Standar"}
-                        </Badge>
-                        <span className="text-xs font-mono font-medium text-muted-foreground">
-                          {mat.price > 0
-                            ? `+${(mat.price / 1000000).toFixed(1)}jt`
-                            : "-"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </main>
-
-      {/* Floating Bottom Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t p-4 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-30">
-        <div className="container mx-auto flex flex-col sm:flex-row justify-between items-center max-w-5xl gap-4">
-          <div className="flex items-center gap-4">
-            <div className="bg-primary p-3 rounded-xl text-primary-foreground shadow-lg shadow-primary/20 hidden sm:flex items-center justify-center">
-              <Calculator className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Total Estimasi
-                </p>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <HelpCircle className="w-3 h-3 text-muted-foreground" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>
-                        Harga estimasi konstruksi bangunan, belum termasuk lahan
-                        jika terpisah.
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-              <div className="flex items-baseline gap-2">
-                <p className="text-3xl font-bold text-foreground tracking-tight">
-                  {toIDR(totalPrice)}
-                </p>
-              </div>
-            </div>
-          </div>
-          <Button
-            size="lg"
-            className="w-full sm:w-auto h-14 px-8 text-base shadow-xl shadow-primary/20 hover:shadow-primary/40 transition-all rounded-xl font-bold"
-            onClick={() => {
-              setStep(1);
-              setIsConfirmOpen(true);
-            }}
-          >
-            Lanjut Pembayaran <ChevronRight className="ml-2 w-5 h-5" />
-          </Button>
-        </div>
-      </div>
-
-      {/* DIALOG WIZARD */}
-      <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto sm:max-w-xl p-0 gap-0 overflow-hidden rounded-2xl">
-          {/* STEP 1: REVIEW */}
-          {step === 1 && (
-            <div className="flex flex-col h-full max-h-[90vh]">
-              <DialogHeader className="p-6 pb-2">
-                <DialogTitle className="text-2xl">
-                  Review Spesifikasi
-                </DialogTitle>
-                <DialogDescription>
-                  Cek kembali detail pesanan custom Anda.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="flex-1 overflow-y-auto p-6 pt-2">
-                <div className="rounded-xl border bg-muted/30 divide-y divide-dashed">
-                  {Object.values(selectedSpecs).map((spec: any, idx) => (
-                    <div
-                      key={idx}
-                      className="flex justify-between items-center p-3 hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-lg overflow-hidden bg-muted hidden sm:block shadow-sm">
-                          <Image
-                            src={getMaterialImage(spec.name, "")}
-                            alt={spec.name}
-                            width={40}
-                            height={40}
-                            className="object-cover w-full h-full"
-                          />
+                          <div className="aspect-video relative bg-muted">
+                            <Image
+                              src={getMaterialImage(mat.name, category.name)}
+                              alt={mat.name}
+                              fill
+                              className={cn(
+                                "object-cover transition-transform duration-500",
+                                isSelected
+                                  ? "scale-105"
+                                  : "group-hover:scale-110"
+                              )}
+                            />
+                            {isSelected && (
+                              <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                                <CheckCircle className="w-8 h-8 text-white drop-shadow-md" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="p-3 text-sm">
+                            <p className="font-semibold leading-tight mb-1">
+                              {mat.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground font-mono">
+                              {mat.price > 0
+                                ? `+${(mat.price / 1000000).toFixed(1)}jt`
+                                : "Standar"}
+                            </p>
+                          </div>
                         </div>
-                        <span className="font-medium text-sm text-foreground">
-                          {spec.name}
-                        </span>
-                      </div>
-                      <span className="font-mono text-xs sm:text-sm text-muted-foreground">
-                        {spec.price > 0 ? toIDR(spec.price) : "Termasuk"}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex justify-between items-end mt-4 p-4 bg-primary/5 rounded-xl border border-primary/10">
-                  <span className="text-sm font-medium text-muted-foreground">
-                    Total Harga Akhir
-                  </span>
-                  <span className="text-primary text-2xl font-bold">
-                    {toIDR(totalPrice)}
-                  </span>
-                </div>
-              </div>
-              <DialogFooter className="p-6 pt-2 border-t bg-muted/10">
-                <Button variant="ghost" onClick={() => setIsConfirmOpen(false)}>
-                  Batal
-                </Button>
-                <Button onClick={() => setStep(2)}>Konfirmasi & Lanjut</Button>
-              </DialogFooter>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           )}
 
-          {/* STEP 2: METODE BAYAR */}
-          {step === 2 && (
-            <div className="flex flex-col h-full">
-              <DialogHeader className="p-6 pb-2">
-                <DialogTitle>Metode Pembayaran</DialogTitle>
-                <DialogDescription>
-                  Pilih skema yang paling nyaman untuk Anda.
-                </DialogDescription>
-              </DialogHeader>
+          {/* STEP 2: METODE PEMBAYARAN */}
+          {currentStep === "PAYMENT" && (
+            <div className="space-y-6 max-w-2xl mx-auto">
+              <div className="text-center space-y-2">
+                <h2 className="text-3xl font-bold">Metode Pembayaran</h2>
+                <p className="text-muted-foreground">
+                  Pilih skema pembayaran yang paling nyaman.
+                </p>
+              </div>
 
-              <div className="p-6 pt-2 space-y-6">
-                <RadioGroup
-                  defaultValue="CASH"
-                  onValueChange={(v: any) => setPaymentMethod(v)}
-                  className="grid grid-cols-2 gap-4"
+              <RadioGroup
+                value={paymentMethod}
+                onValueChange={(v: any) => setPaymentMethod(v)}
+                className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+              >
+                <Label
+                  className={cn(
+                    "flex flex-col items-center justify-center p-6 border-2 rounded-xl cursor-pointer hover:bg-muted/50 transition-all gap-4",
+                    paymentMethod === "CASH"
+                      ? "border-primary bg-primary/5"
+                      : "border-muted"
+                  )}
                 >
-                  <div
-                    className={`relative flex flex-col items-center justify-center space-y-2 border-2 p-4 rounded-xl cursor-pointer hover:bg-muted/50 transition-all h-32 ${
-                      paymentMethod === "CASH"
-                        ? "border-primary bg-primary/5"
-                        : "border-muted bg-muted/20"
-                    }`}
-                    onClick={() => setPaymentMethod("CASH")}
-                  >
-                    <RadioGroupItem
-                      value="CASH"
-                      id="cash"
-                      className="sr-only"
-                    />
-                    <span className="font-bold text-lg">Cash Keras</span>
-                    <span className="text-xs text-center text-muted-foreground px-2">
-                      Lunas langsung tanpa bunga
+                  <RadioGroupItem value="CASH" className="sr-only" />
+                  <div className="p-3 bg-green-100 text-green-700 rounded-full">
+                    <CreditCard className="w-6 h-6" />
+                  </div>
+                  <div className="text-center">
+                    <span className="block font-bold text-lg">Cash Keras</span>
+                    <span className="text-xs text-muted-foreground">
+                      Lunas langsung, tanpa bunga.
                     </span>
                   </div>
-                  <div
-                    className={`relative flex flex-col items-center justify-center space-y-2 border-2 p-4 rounded-xl cursor-pointer hover:bg-muted/50 transition-all h-32 ${
-                      paymentMethod === "CREDIT"
-                        ? "border-primary bg-primary/5"
-                        : "border-muted bg-muted/20"
-                    }`}
-                    onClick={() => setPaymentMethod("CREDIT")}
-                  >
-                    <RadioGroupItem
-                      value="CREDIT"
-                      id="credit"
-                      className="sr-only"
-                    />
-                    <span className="font-bold text-lg">Kredit (KPR)</span>
-                    <span className="text-xs text-center text-muted-foreground px-2">
-                      Cicilan ringan Bunga Flat 12%
+                </Label>
+                <Label
+                  className={cn(
+                    "flex flex-col items-center justify-center p-6 border-2 rounded-xl cursor-pointer hover:bg-muted/50 transition-all gap-4",
+                    paymentMethod === "CREDIT"
+                      ? "border-primary bg-primary/5"
+                      : "border-muted"
+                  )}
+                >
+                  <RadioGroupItem value="CREDIT" className="sr-only" />
+                  <div className="p-3 bg-blue-100 text-blue-700 rounded-full">
+                    <Home className="w-6 h-6" />
+                  </div>
+                  <div className="text-center">
+                    <span className="block font-bold text-lg">
+                      Kredit (KPR)
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      Cicilan ringan, Bunga Flat 12%.
                     </span>
                   </div>
-                </RadioGroup>
+                </Label>
+              </RadioGroup>
 
-                {paymentMethod === "CREDIT" && (
-                  <div className="bg-muted/30 p-5 rounded-xl space-y-5 border animate-in fade-in slide-in-from-top-4">
-                    {/* Input DP */}
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-base">Uang Muka (DP)</Label>
-                        <span className="text-xs text-muted-foreground font-mono">
-                          Min. Rp 0
-                        </span>
-                      </div>
+              {paymentMethod === "CREDIT" && (
+                <Card className="animate-in fade-in zoom-in-95 border-primary/20 bg-blue-50/50 dark:bg-blue-950/20">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Calculator className="w-4 h-4" /> Simulasi Kredit
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="space-y-2">
+                      <Label>Uang Muka (DP)</Label>
                       <div className="relative">
-                        <span className="absolute left-3 top-3 text-muted-foreground font-bold">
+                        <span className="absolute left-3 top-2.5 text-muted-foreground">
                           Rp
                         </span>
                         <Input
-                          type="text"
-                          placeholder="0"
-                          value={toIDR(dpAmount).replace("Rp", "").trim()}
-                          onChange={handleDpChange}
-                          className="pl-10 h-12 font-bold text-lg"
+                          value={dpRaw}
+                          onChange={(e) =>
+                            setDpRaw(e.target.value.replace(/\D/g, ""))
+                          }
+                          className="pl-8"
+                          placeholder="Contoh: 50000000"
                         />
                       </div>
-                      <div className="flex justify-between text-xs text-muted-foreground p-2 rounded bg-background border border-dashed">
-                        <span>Sisa Pokok Hutang:</span>
-                        <span className="font-bold text-foreground">
-                          {toIDR(calculateCredit.pokokHutang)}
-                        </span>
-                      </div>
+                      {dpAmount >= totalPrice && (
+                        <p className="text-xs text-red-500">
+                          DP tidak boleh melebihi harga rumah.
+                        </p>
+                      )}
                     </div>
 
-                    {/* Input Tenor */}
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <Label className="text-base">
-                          Tenor (Jangka Waktu)
-                        </Label>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <Info className="w-4 h-4 text-muted-foreground cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="max-w-xs">
-                                Semakin lama tenor, cicilan semakin kecil, namun
-                                total bunga semakin besar.
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
+                    <div className="space-y-2">
+                      <Label>Tenor (Lama Angsuran)</Label>
                       <Select value={tenor} onValueChange={setTenor}>
-                        <SelectTrigger className="h-12 bg-background">
+                        <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -598,187 +508,326 @@ export default function HouseCustomizer() {
                       </Select>
                     </div>
 
-                    {/* Ringkasan Kredit */}
-                    <div className="bg-blue-50 dark:bg-blue-950/30 p-5 rounded-xl border border-blue-100 dark:border-blue-900 mt-2">
-                      <div className="flex justify-between items-center mb-1">
-                        <p className="text-sm font-semibold text-blue-900 dark:text-blue-100 flex items-center gap-2">
-                          Angsuran per Bulan
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <HelpCircle className="w-3 h-3 text-blue-500" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Menggunakan sistem Bunga Flat (Tetap).</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </p>
+                    <Separator />
+                    <div className="bg-background/80 p-4 rounded-lg border space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Pokok Hutang</span>
+                        <span>{toIDR(calculateCredit.pokokHutang)}</span>
                       </div>
-                      <p className="text-3xl font-extrabold text-blue-700 dark:text-blue-400 tracking-tight">
-                        {toIDR(calculateCredit.angsuranPerBulan)}
-                      </p>
-                      <Separator className="my-3 bg-blue-200 dark:bg-blue-800" />
-                      <div className="flex justify-between text-xs text-blue-800 dark:text-blue-300">
-                        <span>Total Bunga ({tenor} bln):</span>
-                        <span className="font-mono">
-                          {toIDR(calculateCredit.totalBunga)}
+                      <div className="flex justify-between text-sm">
+                        <span>Total Bunga (Flat 12%)</span>
+                        <span className="text-red-500">
+                          +{toIDR(calculateCredit.totalBunga)}
                         </span>
                       </div>
-                      <div className="flex justify-between text-xs text-blue-800 dark:text-blue-300 mt-1">
-                        <span>Total Bayar Akhir:</span>
-                        <span className="font-mono font-bold">
-                          {toIDR(calculateCredit.totalKewajiban)}
+                      <div className="flex justify-between font-bold text-lg pt-2 border-t">
+                        <span>Angsuran / Bulan</span>
+                        <span className="text-primary">
+                          {toIDR(calculateCredit.angsuranPerBulan)}
                         </span>
                       </div>
                     </div>
-                  </div>
-                )}
-              </div>
-              <DialogFooter className="p-6 pt-2 border-t bg-muted/10">
-                <Button variant="ghost" onClick={() => setStep(1)}>
-                  Kembali
-                </Button>
-                <Button onClick={() => setStep(3)}>Lanjut Isi Data</Button>
-              </DialogFooter>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           )}
 
           {/* STEP 3: DATA DIRI */}
-          {step === 3 && (
-            <div className="flex flex-col h-full">
-              <DialogHeader className="p-6">
-                <DialogTitle>Data Pemesan</DialogTitle>
-                <DialogDescription>
-                  Lengkapi data untuk penerbitan SPK resmi.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="p-6 pt-0 space-y-5">
-                <div className="space-y-2">
-                  <Label>Nama Lengkap</Label>
-                  <Input
-                    className="h-11"
-                    placeholder="Contoh: Budi Santoso"
-                    value={customerData.name}
-                    onChange={(e) =>
-                      setCustomerData({ ...customerData, name: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>No. WhatsApp / HP</Label>
-                  <Input
-                    className="h-11"
-                    type="tel"
-                    placeholder="0812xxxx"
-                    value={customerData.contact}
-                    onChange={(e) =>
-                      setCustomerData({
-                        ...customerData,
-                        contact: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Alamat Domisili</Label>
-                  <Input
-                    className="h-11"
-                    placeholder="Kota Serang, Banten"
-                    value={customerData.address}
-                    onChange={(e) =>
-                      setCustomerData({
-                        ...customerData,
-                        address: e.target.value,
-                      })
-                    }
-                  />
-                </div>
+          {currentStep === "DATA" && (
+            <div className="space-y-6 max-w-xl mx-auto">
+              <div className="text-center space-y-2">
+                <h2 className="text-3xl font-bold">Data Pemesan</h2>
+                <p className="text-muted-foreground">
+                  Lengkapi data diri untuk validasi pesanan (SPK).
+                </p>
               </div>
-              <DialogFooter className="p-6 border-t bg-muted/10">
-                <Button variant="ghost" onClick={() => setStep(2)}>
-                  Kembali
-                </Button>
-                <Button
-                  onClick={handleSubmit}
-                  disabled={submitting}
-                  className="w-full sm:w-auto min-w-37.5"
-                >
-                  {submitting ? (
-                    <Loader2 className="animate-spin mr-2 w-4 h-4" />
-                  ) : (
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                  )}
-                  Kirim Pesanan
-                </Button>
-              </DialogFooter>
+              <Card>
+                <CardContent className="p-6 space-y-4">
+                  <div className="space-y-2">
+                    <Label>Nama Lengkap</Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        className="pl-9"
+                        placeholder="Nama sesuai KTP"
+                        value={customerData.name}
+                        onChange={(e) =>
+                          setCustomerData({
+                            ...customerData,
+                            name: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Kontak (WhatsApp/HP)</Label>
+                    <Input
+                      type="tel"
+                      placeholder="0812xxxx"
+                      value={customerData.contact}
+                      onChange={(e) =>
+                        setCustomerData({
+                          ...customerData,
+                          contact: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Alamat Domisili</Label>
+                    <Input
+                      placeholder="Alamat lengkap saat ini"
+                      value={customerData.address}
+                      onChange={(e) =>
+                        setCustomerData({
+                          ...customerData,
+                          address: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           )}
 
-          {/* STEP 4: SUCCESS PAGE */}
-          {step === 4 && (
-            <div className="p-8 flex flex-col items-center text-center space-y-6 animate-in zoom-in-95 duration-500">
-              <div className="h-24 w-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center shadow-inner">
-                <CheckCircle className="w-12 h-12" />
-              </div>
-              <div className="space-y-2">
-                <DialogTitle className="text-3xl font-bold text-green-700">
-                  Pesanan Diterima!
-                </DialogTitle>
-                <DialogDescription className="max-w-sm mx-auto text-base">
-                  Terima kasih <strong>{customerData.name}</strong>, konfigurasi
-                  rumah impian Anda telah tersimpan.
-                </DialogDescription>
+          {/* STEP 4: KONFIRMASI */}
+          {currentStep === "CONFIRM" && (
+            <div className="space-y-6 max-w-2xl mx-auto">
+              <div className="text-center space-y-2">
+                <h2 className="text-3xl font-bold">Konfirmasi Akhir</h2>
+                <p className="text-muted-foreground">
+                  Pastikan semua data sudah benar sebelum mengirim pesanan.
+                </p>
               </div>
 
-              <div className="bg-muted/50 p-6 rounded-2xl w-full border border-dashed border-muted-foreground/30 text-left space-y-4">
-                <div className="flex justify-between items-center pb-2 border-b border-dashed border-muted-foreground/20">
-                  <span className="text-sm text-muted-foreground">
-                    Order ID
-                  </span>
-                  <span className="font-mono font-bold bg-background px-2 py-1 rounded border">
-                    {orderId}
-                  </span>
-                </div>
-                <div>
-                  <p className="font-semibold text-xs uppercase tracking-wider text-muted-foreground mb-2">
-                    Langkah Selanjutnya:
-                  </p>
-                  <ul className="space-y-2 text-sm text-foreground/80">
-                    <li className="flex items-start gap-2">
-                      <span className="bg-primary/20 text-primary rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold mt-0.5">
-                        1
+              <div className="grid gap-6">
+                {/* 1. Review Spesifikasi Singkat */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">
+                      Ringkasan Spesifikasi
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm space-y-1">
+                    {Object.values(selectedSpecs).map((s: any) => (
+                      <div
+                        key={s.id}
+                        className="flex justify-between border-b border-dashed last:border-0 py-2"
+                      >
+                        <span className="text-muted-foreground">{s.name}</span>
+                        <span className="font-mono">
+                          {s.price > 0 ? toIDR(s.price) : "Termasuk"}
+                        </span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between font-bold pt-2 text-base">
+                      <span>Total Harga Bangunan</span>
+                      <span>{toIDR(totalPrice)}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* 2. Review Pembayaran */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">
+                      Rencana Pembayaran
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm">
+                    <div className="flex items-center gap-4 p-3 bg-muted/30 rounded-lg">
+                      <div className="bg-primary/10 p-2 rounded text-primary">
+                        {paymentMethod === "CASH" ? <CreditCard /> : <Home />}
+                      </div>
+                      <div>
+                        <p className="font-bold">
+                          {paymentMethod === "CASH"
+                            ? "Cash Keras"
+                            : `Kredit ${tenor} Bulan`}
+                        </p>
+                        <p className="text-muted-foreground text-xs">
+                          {paymentMethod === "CASH"
+                            ? "Pembayaran lunas bertahap sesuai progres."
+                            : `DP: ${toIDR(dpAmount)} | Cicilan: ${toIDR(
+                                calculateCredit.angsuranPerBulan
+                              )}/bln`}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* 3. Data Diri */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">
+                      Penerima Pesanan
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="text-xs text-muted-foreground block">
+                        Nama
                       </span>
-                      Admin kami akan menghubungi via WhatsApp.
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="bg-primary/20 text-primary rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold mt-0.5">
-                        2
+                      <span className="font-medium">{customerData.name}</span>
+                    </div>
+                    <div>
+                      <span className="text-xs text-muted-foreground block">
+                        Kontak
                       </span>
-                      Jadwal survei lokasi & konsultasi final.
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="bg-primary/20 text-primary rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold mt-0.5">
-                        3
+                      <span className="font-medium">
+                        {customerData.contact}
                       </span>
-                      Proses administrasi & pembangunan dimulai.
-                    </li>
-                  </ul>
-                </div>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="text-xs text-muted-foreground block">
+                        Alamat
+                      </span>
+                      <span className="font-medium">
+                        {customerData.address}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 5: SUKSES (INFORMATIF) */}
+          {currentStep === "SUCCESS" && (
+            <div className="flex flex-col items-center justify-center text-center space-y-8 animate-in zoom-in-95 duration-700 py-10">
+              <div className="relative">
+                <div className="absolute inset-0 bg-green-500 blur-2xl opacity-20 rounded-full" />
+                <FileCheck className="w-24 h-24 text-green-600 relative z-10" />
               </div>
 
-              <div className="flex gap-3 w-full justify-center pt-2">
-                <Button variant="outline" className="flex-1" disabled>
-                  <Download className="w-4 h-4 mr-2" /> Unduh PDF
-                </Button>
-                <Link href="/" className="flex-1">
-                  <Button className="w-full">Selesai</Button>
+              <div className="space-y-2 max-w-lg">
+                <h2 className="text-4xl font-extrabold tracking-tight text-green-700">
+                  Pesanan Berhasil!
+                </h2>
+                <p className="text-lg text-muted-foreground">
+                  Terima kasih <strong>{customerData.name}</strong>. Data
+                  pesanan Anda telah tersimpan di sistem kami dengan aman.
+                </p>
+              </div>
+
+              <Card className="w-full max-w-md border-dashed border-2 shadow-none bg-muted/30">
+                <CardContent className="p-6 space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-muted-foreground">
+                      ID Pesanan
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className="font-mono text-base px-3 py-1 bg-background"
+                    >
+                      {orderId}
+                    </Badge>
+                  </div>
+                  <Separator />
+                  <div className="text-left space-y-3">
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Langkah Selanjutnya:
+                    </p>
+                    <ul className="space-y-3 text-sm">
+                      <li className="flex gap-3 items-start">
+                        <div className="bg-primary text-primary-foreground w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs font-bold">
+                          1
+                        </div>
+                        <span>
+                          Admin Marketing kami akan menghubungi Anda via
+                          WhatsApp dalam 1x24 jam.
+                        </span>
+                      </li>
+                      <li className="flex gap-3 items-start">
+                        <div className="bg-primary text-primary-foreground w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs font-bold">
+                          2
+                        </div>
+                        <span>
+                          Jadwal survei lokasi fisik dan konsultasi detail
+                          material.
+                        </span>
+                      </li>
+                      <li className="flex gap-3 items-start">
+                        <div className="bg-primary text-primary-foreground w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs font-bold">
+                          3
+                        </div>
+                        <span>
+                          Penandatanganan SPK & Pembayaran Booking Fee.
+                        </span>
+                      </li>
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="flex gap-4">
+                <Link href="/">
+                  <Button variant="outline">Kembali ke Beranda</Button>
                 </Link>
               </div>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
+        </div>
+      </main>
+
+      {/* Footer Navigation (Floating) */}
+      {currentStep !== "SUCCESS" && (
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/90 backdrop-blur border-t z-40">
+          <div className="container mx-auto max-w-4xl flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              {/* Total Price Indicator */}
+              <div className="hidden sm:block">
+                <p className="text-[10px] uppercase text-muted-foreground font-bold">
+                  Estimasi Harga
+                </p>
+                <p className="text-xl font-bold text-primary">
+                  {toIDR(totalPrice)}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                variant="ghost"
+                onClick={prevStep}
+                disabled={currentStepIndex === 0}
+                className={cn(
+                  currentStepIndex === 0 && "opacity-0 pointer-events-none"
+                )}
+              >
+                <ChevronLeft className="mr-2 w-4 h-4" /> Kembali
+              </Button>
+
+              {currentStep === "CONFIRM" ? (
+                <Button
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                  className="min-w-35"
+                >
+                  {submitting ? (
+                    <Loader2 className="animate-spin mr-2" />
+                  ) : (
+                    <ShieldCheck className="mr-2 w-4 h-4" />
+                  )}
+                  Kirim Pesanan
+                </Button>
+              ) : (
+                <Button
+                  onClick={nextStep}
+                  disabled={!canProceed()}
+                  className="min-w-35"
+                >
+                  Lanjut <ChevronRight className="ml-2 w-4 h-4" />
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
