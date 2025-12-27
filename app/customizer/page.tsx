@@ -307,7 +307,7 @@ export default function HouseCustomizer() {
                 return (
                   <div
                     key={idx}
-                    className="flex flex-col items-center gap-2 bg-background px-2"
+                    className="flex flex-col items-center gap-2 bg-background/50 p-2 rounded-xl px-2"
                   >
                     <div
                       className={cn(
