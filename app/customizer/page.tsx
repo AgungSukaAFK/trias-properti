@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useHouseCalculator } from "@/hooks/useHouseCalculator";
@@ -9,7 +9,6 @@ import { toast } from "sonner";
 import {
   Loader2,
   ArrowLeft,
-  ArrowRight,
   CheckCircle,
   Calculator,
   ChevronRight,
@@ -20,7 +19,6 @@ import {
   FileCheck,
   Home,
   ShieldCheck,
-  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -45,88 +43,128 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ModeToggle } from "@/components/mode-toggle";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardFooter,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-// --- KONFIGURASI GAMBAR & INFO (Sama seperti sebelumnya) ---
+// --- KONFIGURASI GAMBAR SESUAI DB REAL ---
+// Key menggunakan huruf kecil (lowercase).
+// Sistem mencocokkan jika nama item di DB mengandung kata kunci di bawah ini.
 const MATERIAL_IMAGES: Record<string, string> = {
-  // Struktur & Dasar
-  ukuran:
-    "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&q=80&w=400&h=300",
-  pondasi:
-    "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&q=80&w=400&h=300",
+  // --- 1. UKURAN RUMAH (BASE) ---
+  "tipe 30":
+    "https://i.pinimg.com/1200x/4d/1c/6d/4d1c6decc834734e8ce2f290452cd5e8.jpg",
+  "tipe 40":
+    "https://i.pinimg.com/1200x/d7/cd/f0/d7cdf04540013235eacbbc9744502458.jpg",
+  "tipe 45":
+    "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=600",
+
+  // --- 2. PONDASI ---
   "batu kali":
-    "https://images.unsplash.com/photo-1518709766631-a6a7f45921c3?auto=format&fit=crop&q=80&w=400&h=300",
+    "https://i.pinimg.com/1200x/1f/3c/4f/1f3c4fcf80a4a174766f422e4cc76a15.jpg",
+  rollag:
+    "https://i.pinimg.com/736x/c9/2d/17/c92d17e36c6fd99f78f0471680ee010b.jpg",
+  "plat jalur":
+    "https://i.pinimg.com/736x/6f/a8/7b/6fa87b1dee1ca2a240a63442a6a07102.jpg",
   "cakar ayam":
-    "https://images.unsplash.com/photo-1628744876497-eb30460be9f6?auto=format&fit=crop&q=80&w=400&h=300",
-  // Dinding
-  "bata merah":
-    "https://images.unsplash.com/photo-1599818826721-b01625902047?auto=format&fit=crop&q=80&w=400&h=300",
-  hebel:
-    "https://images.unsplash.com/photo-1590082725838-b715764cb237?auto=format&fit=crop&q=80&w=400&h=300",
+    "https://i.pinimg.com/736x/2d/8b/f6/2d8bf648271d23d8e886bb0f6ad5d139.jpg",
+
+  // --- 3. DINDING ---
   batako:
-    "https://images.unsplash.com/photo-1518399778368-23b9d79905d8?auto=format&fit=crop&q=80&w=400&h=300",
-  // Lantai
-  granit:
-    "https://images.unsplash.com/photo-1616423664033-68d716298642?auto=format&fit=crop&q=80&w=400&h=300",
+    "https://i.pinimg.com/1200x/7f/29/c7/7f29c7312576c8acc39f34ae30a77284.jpg",
+  hebel:
+    "https://i.pinimg.com/1200x/97/80/14/978014e1ba0297f7514b57b366a41455.jpg",
+  "bata ringan":
+    "https://i.pinimg.com/1200x/97/80/14/978014e1ba0297f7514b57b366a41455.jpg",
+  "bata merah":
+    "https://i.pinimg.com/1200x/15/d9/a0/15d9a0a273cb8b850e1978da6f8428ca.jpg",
+
+  // --- 4. LANTAI ---
   keramik:
-    "https://images.unsplash.com/photo-1615873968403-89e068629265?auto=format&fit=crop&q=80&w=400&h=300",
-  marmer:
-    "https://images.unsplash.com/photo-1618221639257-2e2d0943f760?auto=format&fit=crop&q=80&w=400&h=300",
+    "https://i.pinimg.com/1200x/06/68/ef/0668efeb92f43fac8a75150d3cfcb780.jpg",
+  granit:
+    "https://i.pinimg.com/736x/92/fe/68/92fe6802724cb5f7e785e733aa17830b.jpg",
   "batu alam":
-    "https://images.unsplash.com/photo-1600607686527-6fb886090705?auto=format&fit=crop&q=80&w=400&h=300",
-  // Atap & Plafon
-  genteng:
-    "https://images.unsplash.com/photo-1632759972844-4e924d557022?auto=format&fit=crop&q=80&w=400&h=300",
+    "https://i.pinimg.com/1200x/3e/72/ff/3e72ff36677c384c03ca234c736f0bca.jpg",
+  marmer:
+    "https://i.pinimg.com/736x/ae/8a/33/ae8a3379efb422e63b00291716128602.jpg",
+
+  // --- 5. KASO & RENG (Rangka Atap) ---
+  "kaso kayu":
+    "https://i.pinimg.com/736x/8e/64/49/8e6449fafec587417f87dadced6bba6b.jpg", // Rangka Kayu
+  "baja ringan":
+    "https://i.pinimg.com/736x/04/4d/fe/044dfe5ad19f02790029fa059fa8ac67.jpg", // Kanal C
+
+  // --- 6. GENTENG (Penutup Atap) ---
+  "genteng tanah":
+    "https://i.pinimg.com/736x/1b/36/a4/1b36a4be4a93e078a0d497d21ea0c1d7.jpg",
   spandek:
-    "https://images.unsplash.com/photo-1629813200788-b220311029c9?auto=format&fit=crop&q=80&w=400&h=300",
-  metal:
-    "https://images.unsplash.com/photo-1517646287270-a5a9ca602e5c?auto=format&fit=crop&q=80&w=400&h=300",
-  plafon:
-    "https://images.unsplash.com/photo-1594904297322-2621096c4d79?auto=format&fit=crop&q=80&w=400&h=300",
-  gypsum:
-    "https://images.unsplash.com/photo-1581093583449-ed2521361957?auto=format&fit=crop&q=80&w=400&h=300",
-  pvc: "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&q=80&w=400&h=300",
-  // Lainnya
-  pintu:
-    "https://images.unsplash.com/photo-1617104424032-b9bd6972d0e4?auto=format&fit=crop&q=80&w=400&h=300",
-  jendela:
-    "https://images.unsplash.com/photo-1506300481232-a16df162947c?auto=format&fit=crop&q=80&w=400&h=300",
-  listrik:
-    "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&q=80&w=400&h=300",
-  watt: "https://images.unsplash.com/photo-1555662704-36a531e285d8?auto=format&fit=crop&q=80&w=400&h=300",
-  pagar:
-    "https://images.unsplash.com/photo-1623192067750-70f44e339189?auto=format&fit=crop&q=80&w=400&h=300",
-  hollow:
-    "https://images.unsplash.com/photo-1605117882932-f9e32b03ef3c?auto=format&fit=crop&q=80&w=400&h=300",
+    "https://i.pinimg.com/1200x/72/02/e4/7202e46941b002bee24646d277285647.jpg",
+  "metal roof":
+    "https://i.pinimg.com/1200x/9d/f2/a9/9df2a948b79033cfd32a752ab4a1df68.jpg",
+  onduvila:
+    "https://i.pinimg.com/736x/0e/3b/9f/0e3b9f3d44e1e6c6419a7ab70312416f.jpg",
+  "genteng keramik":
+    "https://i.pinimg.com/1200x/ba/b9/48/bab94840dadadb256f5c0710b70a1d2e.jpg", // Glazed roof tile
+
+  // --- 7. PLAFON ---
+  triplek:
+    "https://i.pinimg.com/736x/a1/e3/8d/a1e38d8ea40e41068a91a6ac20f228f6.jpg",
+  grc: "https://i.pinimg.com/736x/e9/a8/6e/e9a86edf27552248d9ccc6472c2d2684.jpg",
+  gipsum:
+    "https://i.pinimg.com/1200x/4b/9a/44/4b9a44607f4515f51614fdaed826bf87.jpg",
+  pvc: "https://i.pinimg.com/736x/92/96/c8/9296c86d377b10f250b8c5025b1d0ff9.jpg",
+
+  // --- 8. PINTU & JENDELA ---
+  meranti:
+    "https://i.pinimg.com/1200x/d1/b6/ff/d1b6ff5d319a89a9cd92271ef3ecb8f2.jpg",
+  aluminium:
+    "https://i.pinimg.com/736x/63/43/6c/63436c49d74ef79c5424a234c1e197bb.jpg",
+  jati: "https://i.pinimg.com/1200x/2e/9e/6c/2e9e6c466617329f6403f34cc923ca3c.jpg",
+
+  // --- 9. DAYA LISTRIK ---
+  watt: "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&q=80&w=400",
+
+  // --- 10. PAGAR ---
+  "tanpa pagar":
+    "https://i.pinimg.com/736x/7b/ee/81/7bee81cd4df579dbd273203452f26915.jpg", // Open space
+  "hollow hitam":
+    "https://i.pinimg.com/1200x/14/8c/96/148c96a21a331944baee3af9642d8854.jpg",
+  "hollow galvanis":
+    "https://i.pinimg.com/1200x/db/a0/9a/dba09ad8fd4131b9d8352b97711da251.jpg", // Silverish
+  stainless:
+    "https://i.pinimg.com/736x/03/ed/c4/03edc4cb52e905548ed205b2a894ec4b.jpg", // Shiny
+
+  // Default
   default:
-    "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=400&h=300",
+    "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=400",
+};
+
+// --- LOGIKA PENCARIAN GAMBAR ---
+const getMaterialImage = (name: string) => {
+  if (!name) return MATERIAL_IMAGES["default"];
+
+  const lowerName = name.toLowerCase();
+
+  // Sort key berdasarkan panjang agar yang lebih spesifik dicek duluan
+  // Contoh: "Genteng Keramik" (panjang 15) dicek sebelum "Genteng" (panjang 7)
+  const keys = Object.keys(MATERIAL_IMAGES).sort((a, b) => b.length - a.length);
+
+  const foundKey = keys.find((key) => lowerName.includes(key));
+
+  return foundKey ? MATERIAL_IMAGES[foundKey] : MATERIAL_IMAGES["default"];
 };
 
 const CATEGORY_INFO: Record<string, string> = {
   "ukuran rumah":
-    "Luas bangunan dasar (Tipe). Tipe 30/60 berarti luas bangunan 30m² dan luas tanah 60m².",
-  pondasi: "Struktur bagian bawah bangunan yang menahan beban.",
-  dinding: "Material penyekat ruangan.",
-  lantai: "Penutup permukaan bawah.",
-  "kaso & reng": "Rangka atap baja ringan atau kayu.",
-  genteng: "Penutup atap.",
-  plafon: "Langit-langit ruangan.",
-  "pintu & jendela": "Material kusen dan daun pintu.",
-  "daya listrik": "Kapasitas daya PLN.",
+    "Luas bangunan dasar. Tipe 30/60 = Bangunan 30m², Tanah 60m².",
+  pondasi: "Struktur bawah penahan beban bangunan.",
+  dinding: "Material utama penyekat ruangan.",
+  lantai: "Penutup permukaan lantai ruangan.",
+  "kaso & reng": "Konstruksi rangka atap.",
+  genteng: "Penutup atap pelindung panas & hujan.",
+  plafon: "Langit-langit interior.",
+  "pintu & jendela": "Bahan kusen dan daun pintu/jendela.",
+  "daya listrik": "Kapasitas daya PLN (Token/Pascabayar).",
   pagar: "Pengaman area depan rumah.",
-};
-
-const getMaterialImage = (name: string, categoryName: string) => {
-  const searchTerms = `${categoryName} ${name}`.toLowerCase();
-  const key = Object.keys(MATERIAL_IMAGES).find((k) => searchTerms.includes(k));
-  return key ? MATERIAL_IMAGES[key] : MATERIAL_IMAGES["default"];
 };
 
 // --- TYPES & STEPS ---
@@ -138,16 +176,12 @@ export default function HouseCustomizer() {
     useHouseCalculator();
   const supabase = createClient();
 
-  // State Navigation
+  // State Navigation & Form
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [direction, setDirection] = useState<"next" | "prev">("next"); // Untuk arah animasi
-
-  // State Pembayaran
+  const [direction, setDirection] = useState<"next" | "prev">("next");
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "CREDIT">("CASH");
   const [dpRaw, setDpRaw] = useState<string>("");
   const [tenor, setTenor] = useState<string>("12");
-
-  // State Data Diri
   const [customerData, setCustomerData] = useState({
     name: "",
     contact: "",
@@ -194,7 +228,6 @@ export default function HouseCustomizer() {
     }
   };
 
-  // Validasi Step
   const canProceed = () => {
     if (currentStep === "PAYMENT") {
       if (paymentMethod === "CREDIT" && dpAmount >= totalPrice) return false;
@@ -208,7 +241,6 @@ export default function HouseCustomizer() {
 
   const handleSubmit = async () => {
     setSubmitting(true);
-    // Submit ke database
     const payload = {
       customer_name: customerData.name,
       customer_contact: customerData.contact,
@@ -233,7 +265,7 @@ export default function HouseCustomizer() {
       setSubmitting(false);
     } else {
       setOrderId(data.id);
-      nextStep(); // Ke halaman SUCCESS
+      nextStep();
       setSubmitting(false);
     }
   };
@@ -265,7 +297,7 @@ export default function HouseCustomizer() {
             <ModeToggle />
           </div>
 
-          {/* Progress Bar Steps */}
+          {/* Progress Bar */}
           <div className="flex items-center justify-between relative px-2">
             <div className="absolute left-0 right-0 top-1/2 h-0.5 bg-muted -z-10" />
             {["Spesifikasi", "Metode Bayar", "Data Diri", "Konfirmasi"].map(
@@ -304,7 +336,7 @@ export default function HouseCustomizer() {
         </div>
       </header>
 
-      {/* Main Content dengan Animasi Slide */}
+      {/* Main Content */}
       <main className="container mx-auto px-4 py-8 max-w-4xl min-h-[60vh] overflow-x-hidden relative">
         <div
           key={currentStep}
@@ -368,7 +400,7 @@ export default function HouseCustomizer() {
                         >
                           <div className="aspect-video relative bg-muted">
                             <Image
-                              src={getMaterialImage(mat.name, category.name)}
+                              src={getMaterialImage(mat.name)}
                               alt={mat.name}
                               fill
                               className={cn(
@@ -489,7 +521,6 @@ export default function HouseCustomizer() {
                         </p>
                       )}
                     </div>
-
                     <div className="space-y-2">
                       <Label>Tenor (Lama Angsuran)</Label>
                       <Select value={tenor} onValueChange={setTenor}>
@@ -507,7 +538,6 @@ export default function HouseCustomizer() {
                         </SelectContent>
                       </Select>
                     </div>
-
                     <Separator />
                     <div className="bg-background/80 p-4 rounded-lg border space-y-2">
                       <div className="flex justify-between text-sm">
@@ -602,9 +632,7 @@ export default function HouseCustomizer() {
                   Pastikan semua data sudah benar sebelum mengirim pesanan.
                 </p>
               </div>
-
               <div className="grid gap-6">
-                {/* 1. Review Spesifikasi Singkat */}
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">
@@ -629,8 +657,6 @@ export default function HouseCustomizer() {
                     </div>
                   </CardContent>
                 </Card>
-
-                {/* 2. Review Pembayaran */}
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">
@@ -659,8 +685,6 @@ export default function HouseCustomizer() {
                     </div>
                   </CardContent>
                 </Card>
-
-                {/* 3. Data Diri */}
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">
@@ -696,14 +720,13 @@ export default function HouseCustomizer() {
             </div>
           )}
 
-          {/* STEP 5: SUKSES (INFORMATIF) */}
+          {/* STEP 5: SUKSES */}
           {currentStep === "SUCCESS" && (
             <div className="flex flex-col items-center justify-center text-center space-y-8 animate-in zoom-in-95 duration-700 py-10">
               <div className="relative">
                 <div className="absolute inset-0 bg-green-500 blur-2xl opacity-20 rounded-full" />
                 <FileCheck className="w-24 h-24 text-green-600 relative z-10" />
               </div>
-
               <div className="space-y-2 max-w-lg">
                 <h2 className="text-4xl font-extrabold tracking-tight text-green-700">
                   Pesanan Berhasil!
@@ -713,7 +736,6 @@ export default function HouseCustomizer() {
                   pesanan Anda telah tersimpan di sistem kami dengan aman.
                 </p>
               </div>
-
               <Card className="w-full max-w-md border-dashed border-2 shadow-none bg-muted/30">
                 <CardContent className="p-6 space-y-4">
                   <div className="flex justify-between items-center">
@@ -763,7 +785,6 @@ export default function HouseCustomizer() {
                   </div>
                 </CardContent>
               </Card>
-
               <div className="flex gap-4">
                 <Link href="/">
                   <Button variant="outline">Kembali ke Beranda</Button>
@@ -774,22 +795,18 @@ export default function HouseCustomizer() {
         </div>
       </main>
 
-      {/* Footer Navigation (Floating) */}
+      {/* Footer Nav */}
       {currentStep !== "SUCCESS" && (
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/90 backdrop-blur border-t z-40">
           <div className="container mx-auto max-w-4xl flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              {/* Total Price Indicator */}
-              <div className="hidden sm:block">
-                <p className="text-[10px] uppercase text-muted-foreground font-bold">
-                  Estimasi Harga
-                </p>
-                <p className="text-xl font-bold text-primary">
-                  {toIDR(totalPrice)}
-                </p>
-              </div>
+            <div className="hidden sm:block">
+              <p className="text-[10px] uppercase text-muted-foreground font-bold">
+                Estimasi Harga
+              </p>
+              <p className="text-xl font-bold text-primary">
+                {toIDR(totalPrice)}
+              </p>
             </div>
-
             <div className="flex gap-3">
               <Button
                 variant="ghost"
@@ -801,7 +818,6 @@ export default function HouseCustomizer() {
               >
                 <ChevronLeft className="mr-2 w-4 h-4" /> Kembali
               </Button>
-
               {currentStep === "CONFIRM" ? (
                 <Button
                   onClick={handleSubmit}
@@ -812,7 +828,7 @@ export default function HouseCustomizer() {
                     <Loader2 className="animate-spin mr-2" />
                   ) : (
                     <ShieldCheck className="mr-2 w-4 h-4" />
-                  )}
+                  )}{" "}
                   Kirim Pesanan
                 </Button>
               ) : (
